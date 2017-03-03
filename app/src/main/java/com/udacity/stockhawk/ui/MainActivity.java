@@ -6,6 +6,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v4.app.LoaderManager;
+import android.support.v4.content.AsyncTaskLoader;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -24,15 +25,30 @@ import com.udacity.stockhawk.data.Contract;
 import com.udacity.stockhawk.data.PrefUtils;
 import com.udacity.stockhawk.sync.QuoteSyncJob;
 
+import java.io.IOException;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import timber.log.Timber;
+import yahoofinance.Stock;
+import yahoofinance.YahooFinance;
+import yahoofinance.quotes.stock.StockQuote;
 
-public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>,
+public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks,
         SwipeRefreshLayout.OnRefreshListener,
         StockAdapter.StockAdapterOnClickHandler {
 
     private static final int STOCK_LOADER = 0;
+    private static final int CHECK_SYMBOL_LOADER_ID = 444;
+    private static final String SYMBOL_LOADER_KEY = "new_symbol";
+
+    private static Integer SYMBOL_NOT_CHECKED = 0;
+    private static Integer SYMBOL_VALID = 1;
+    private static Integer SYMBOL_INVALID = 2;
+
+
+    private boolean mSymbolExists;
+
     @SuppressWarnings("WeakerAccess")
     @BindView(R.id.recycler_view)
     RecyclerView stockRecyclerView;
@@ -126,34 +142,109 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show();
             }
 
-            PrefUtils.addStock(this, symbol);
+            //TODO: check if symbol exists
+
+            Bundle newSymbolBundle = new Bundle();
+            newSymbolBundle.putString(SYMBOL_LOADER_KEY, symbol);
+            getSupportLoaderManager().restartLoader(CHECK_SYMBOL_LOADER_ID, newSymbolBundle, this);
+            getSupportLoaderManager().initLoader(CHECK_SYMBOL_LOADER_ID, newSymbolBundle, this);
+
+
+        }
+    }
+
+    @Override
+    public Loader onCreateLoader(int id, final Bundle args) {
+
+        if (id == STOCK_LOADER) {
+            return new CursorLoader(this,
+                    Contract.Quote.URI,
+                    Contract.Quote.QUOTE_COLUMNS.toArray(new String[]{}),
+                    null, null, Contract.Quote.COLUMN_SYMBOL);
+        }
+
+        if (id == CHECK_SYMBOL_LOADER_ID) {
+
+            return new AsyncTaskLoader(this) {
+
+                Integer result = SYMBOL_NOT_CHECKED;
+
+                @Override
+                protected void onStartLoading() {
+                    forceLoad();
+                }
+
+                @Override
+                public Object loadInBackground() {
+
+                    String stockString = args.getString(SYMBOL_LOADER_KEY);
+
+                    try {
+                        Stock stockObject = YahooFinance.get(stockString);
+
+                        StockQuote quote = stockObject.getQuote();
+
+                        if (quote.getPrice() == null) {
+                            result = SYMBOL_INVALID;
+                            return result;
+                        } else {
+                            PrefUtils.addStock(getContext(), stockString);
+                            result = SYMBOL_VALID;
+                            return result;
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Timber.d("Failed to add stock: " + stockString);
+                    }
+                    return result;
+                }
+
+            };
+        }
+
+        return null;
+    }
+
+
+    @Override
+    public void onLoadFinished(Loader loader, Object data) {
+
+        if (loader.getId() == STOCK_LOADER) {
+
+            Cursor cursor = (Cursor) data;
+
+            swipeRefreshLayout.setRefreshing(false);
+
+            if (cursor.getCount() != 0) {
+                error.setVisibility(View.GONE);
+            }
+            adapter.setCursor(cursor);
+        } else if (loader.getId() == CHECK_SYMBOL_LOADER_ID) {
+
+            Integer result = (Integer) data;
+            if (result.equals(SYMBOL_VALID)) {
+                Timber.d("Finished Loader, new Symbol Added");
+                Toast.makeText(this, "Added Stock", Toast.LENGTH_SHORT).show();
+            } else if (result.equals(SYMBOL_INVALID)){
+                Timber.d("Finished Loader, Failed to Add Symbol case Invalid");
+                Toast.makeText(this, "Invalid Symbol", Toast.LENGTH_SHORT).show();
+            } else {
+                Timber.d("Finished Loader, Failed to Add Symbol case Not Checked");
+            }
+
             QuoteSyncJob.syncImmediately(this);
+
         }
     }
 
-    @Override
-    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        return new CursorLoader(this,
-                Contract.Quote.URI,
-                Contract.Quote.QUOTE_COLUMNS.toArray(new String[]{}),
-                null, null, Contract.Quote.COLUMN_SYMBOL);
-    }
 
     @Override
-    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        swipeRefreshLayout.setRefreshing(false);
+    public void onLoaderReset(Loader loader) {
 
-        if (data.getCount() != 0) {
-            error.setVisibility(View.GONE);
+        if (loader.getId() == STOCK_LOADER) {
+            swipeRefreshLayout.setRefreshing(false);
+            adapter.setCursor(null);
         }
-        adapter.setCursor(data);
-    }
-
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> loader) {
-        swipeRefreshLayout.setRefreshing(false);
-        adapter.setCursor(null);
     }
 
 
