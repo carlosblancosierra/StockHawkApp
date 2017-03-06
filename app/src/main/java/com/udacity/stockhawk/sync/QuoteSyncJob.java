@@ -12,7 +12,12 @@ import android.net.NetworkInfo;
 import com.udacity.stockhawk.data.Contract;
 import com.udacity.stockhawk.data.PrefUtils;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
@@ -79,17 +84,28 @@ public final class QuoteSyncJob {
                 float change = quote.getChange().floatValue();
                 float percentChange = quote.getChangeInPercent().floatValue();
 
+                //TODO: GETHISTORY
                 // WARNING! Don't request historical data for a stock that doesn't exist!
                 // The request will hang forever X_x
                 List<HistoricalQuote> history = stock.getHistory(from, to, Interval.WEEKLY);
 
                 StringBuilder historyBuilder = new StringBuilder();
+                JSONArray jsonArray = new JSONArray();
 
                 for (HistoricalQuote it : history) {
-                    historyBuilder.append(it.getDate().getTimeInMillis());
+
+                    long dateInMillis = it.getDate().getTimeInMillis();
+                    BigDecimal closePrice = it.getClose();
+
+                    historyBuilder.append(dateInMillis);
                     historyBuilder.append(", ");
-                    historyBuilder.append(it.getClose());
+                    historyBuilder.append(closePrice);
                     historyBuilder.append("\n");
+
+                    jsonArray.put(new JSONObject()
+//                            new JSONObject().put(Long.toString(dateInMillis), closePrice.floatValue()));
+                            .put("date", Long.toString(dateInMillis))
+                            .put("price", closePrice.floatValue()));
                 }
 
                 ContentValues quoteCV = new ContentValues();
@@ -99,7 +115,7 @@ public final class QuoteSyncJob {
                 quoteCV.put(Contract.Quote.COLUMN_ABSOLUTE_CHANGE, change);
 
 
-                quoteCV.put(Contract.Quote.COLUMN_HISTORY, historyBuilder.toString());
+                quoteCV.put(Contract.Quote.COLUMN_HISTORY, jsonArray.toString());
 
                 quoteCVs.add(quoteCV);
 
@@ -115,6 +131,8 @@ public final class QuoteSyncJob {
 
         } catch (IOException exception) {
             Timber.e(exception, "Error fetching stock quotes");
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
     }
 

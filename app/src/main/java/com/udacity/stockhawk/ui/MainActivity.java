@@ -1,6 +1,7 @@
 package com.udacity.stockhawk.ui;
 
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -63,6 +64,11 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @Override
     public void onClick(String symbol) {
         Timber.d("Symbol clicked: %s", symbol);
+
+        Intent historyIntent = new Intent(this, HistoryActivity.class);
+
+        historyIntent.putExtra("symbol", symbol);
+        startActivity(historyIntent);
     }
 
     @Override
@@ -143,7 +149,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             }
 
             //TODO: check if symbol exists
-
             Bundle newSymbolBundle = new Bundle();
             newSymbolBundle.putString(SYMBOL_LOADER_KEY, symbol);
             getSupportLoaderManager().restartLoader(CHECK_SYMBOL_LOADER_ID, newSymbolBundle, this);
@@ -277,4 +282,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         }
         return super.onOptionsItemSelected(item);
     }
+
+
+
 }

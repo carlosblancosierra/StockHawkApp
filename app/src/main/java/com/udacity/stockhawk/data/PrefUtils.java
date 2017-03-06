@@ -6,14 +6,9 @@ import android.preference.PreferenceManager;
 
 import com.udacity.stockhawk.R;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-
-import yahoofinance.Stock;
-import yahoofinance.YahooFinance;
-import yahoofinance.quotes.stock.StockQuote;
 
 public final class PrefUtils {
 
@@ -93,19 +88,4 @@ public final class PrefUtils {
         editor.apply();
     }
 
-    public static boolean symbolExists(String symbol) {
-
-        try {
-            Stock stockObject = YahooFinance.get(symbol);
-
-            StockQuote quote = stockObject.getQuote();
-
-            return (quote.getPrice() == null);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-
-    }
 }
