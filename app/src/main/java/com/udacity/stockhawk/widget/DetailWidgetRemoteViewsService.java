@@ -116,6 +116,11 @@ public class DetailWidgetRemoteViewsService extends RemoteViewsService {
                     views.setTextViewText(R.id.change, percentage);
                 }
 
+                //complete pending intent to history activity
+                final Intent fillIntent = new Intent();
+                fillIntent.putExtra("symbol", symbol);
+                views.setOnClickFillInIntent(R.id.widget_list_item, fillIntent);
+
                 return views;
             }
 

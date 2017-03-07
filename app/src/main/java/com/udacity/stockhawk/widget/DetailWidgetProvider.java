@@ -13,6 +13,7 @@ import android.widget.RemoteViews;
 
 import com.udacity.stockhawk.R;
 import com.udacity.stockhawk.sync.QuoteSyncJob;
+import com.udacity.stockhawk.ui.HistoryActivity;
 import com.udacity.stockhawk.ui.MainActivity;
 
 /**
@@ -37,6 +38,12 @@ public class DetailWidgetProvider extends AppWidgetProvider {
                 setRemoteAdapterV11(context, views);
             }
 
+
+            //set up peding intent to history activity
+            Intent detailIntent = new Intent(context, HistoryActivity.class);
+            PendingIntent clickPendingIntentTemplate = PendingIntent.getActivity
+                    (context, 0 , detailIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+            views.setPendingIntentTemplate(R.id.widget_main_list_view, clickPendingIntentTemplate);
 
             appWidgetManager.updateAppWidget(appWidgetId, views);
         }
@@ -76,7 +83,7 @@ public class DetailWidgetProvider extends AppWidgetProvider {
             AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
             int[] appWidgetIds = appWidgetManager.getAppWidgetIds(
                     new ComponentName(context, getClass()));
-            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widget_main_list_view    );
+            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widget_main_list_view);
         }
     }
 }
