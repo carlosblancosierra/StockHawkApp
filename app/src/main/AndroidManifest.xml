@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.Manifest.permission.RECEIVE_BOOT_COMPLETED" />
 
+
     <application
         android:name=".StockHawkApp"
         android:allowBackup="false"
@@ -23,6 +24,8 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ui.HistoryActivity"></activity>
+
         <service
             android:name=".sync.QuoteIntentService"
             android:exported="false" />
@@ -38,7 +41,24 @@
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
-        <activity android:name=".ui.HistoryActivity"></activity>
+
+        <receiver
+            android:name=".widget.DetailWidgetProvider"
+            android:enabled="true"
+            android:label="Stock Hawk Widget">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.udacity.stockhawk.ACTION_DATA_UPDATED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_detail" />
+        </receiver>
+        <service
+            android:name=".widget.DetailWidgetRemoteViewsService"
+            android:enabled="true"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
     </application>
 
 </manifest>
